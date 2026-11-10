@@ -1,0 +1,59 @@
+name: Build and Release MediaHub-ChilePlanos
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: Build Executable with PyInstaller
+        run: pyinstaller ChilePlanos.spec
+
+      - name: Compress Build to ZIP
+        run: |
+          mkdir dist_bundle
+          Copy-Item -Path "dist\ChilePlanos.exe" -Destination "dist_bundle\"
+          Compress-Archive -Path "dist_bundle\*" -DestinationPath "MediaHub-ChilePlanos.zip" -Force
+
+      - name: Generate Release Tag Name
+        id: tag_name
+        run: |
+          if ("${{ github.ref }}" -match "refs/tags/") {
+            echo "TAG=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+          } else {
+            $date = Get-Date -Format "yyyyMMdd-HHmm"
+            echo "TAG=v$date" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_name.outputs.TAG }}
+          name: MediaHub-ChilePlanos ${{ steps.tag_name.outputs.TAG }}
+          files: |
+            MediaHub-ChilePlanos.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
