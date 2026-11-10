@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+dist/
+build/
+*.spec.bak
+node_modules/
+dist_electron/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
